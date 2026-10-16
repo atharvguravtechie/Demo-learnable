@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import {
   House,
@@ -16,41 +17,23 @@ import Dashboard from "./pages/Dashboard";
 import Syllabus from "./pages/Syllabus";
 import NotesViewer from "./components/NotesViewer";
 import Quiz from "./components/Quiz";
+import Login from "./pages/Login.jsx";
+import Register from "./pages/Resister.jsx";
 
 const navigation = [
-  {
-    id: "dashboard",
-    label: "Dashboard",
-    icon: House,
-  },
-  {
-    id: "syllabus",
-    label: "My Syllabus",
-    icon: BookOpen,
-  },
-  {
-    id: "notes",
-    label: "AI Notes",
-    icon: FileText,
-  },
-  {
-    id: "quiz",
-    label: "Practice Quiz",
-    icon: Target,
-  },
+  { id: "dashboard", label: "Dashboard", icon: House },
+  { id: "syllabus", label: "My Syllabus", icon: BookOpen },
+  { id: "notes", label: "AI Notes", icon: FileText },
+  { id: "quiz", label: "Practice Quiz", icon: Target },
   {
     id: "progress",
     label: "My Progress",
     icon: ChartNoAxesColumnIncreasing,
   },
-  {
-    id: "settings",
-    label: "Settings",
-    icon: Settings,
-  },
+  { id: "settings", label: "Settings", icon: Settings },
 ];
 
-export default function App() {
+function LearnAbleDashboard() {
   const [page, setPage] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState("");
@@ -85,26 +68,21 @@ export default function App() {
         );
 
       case "syllabus":
-        return (
-          <Syllabus onSelectTopic={handleSelectTopic} />
-        );
+        return <Syllabus onSelectTopic={handleSelectTopic} />;
 
       case "notes":
         return (
           <div className="space-y-6">
-
             <div>
               <h1 className="text-3xl font-bold text-slate-900">
                 AI Notes Generator
               </h1>
-
               <p className="mt-2 text-slate-500">
                 Prepare clear and organized notes for your studies.
               </p>
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-5">
-
               <label
                 htmlFor="topic"
                 className="mb-2 block text-sm font-semibold text-slate-700"
@@ -121,77 +99,60 @@ export default function App() {
               />
 
               <p className="mt-2 text-xs text-slate-500">
-                The actual notes will be generated after the AI backend is connected.
+                Connect the AI backend to generate actual notes.
               </p>
 
               <button
-                onClick={() => {
-                  setNotes("");
-                }}
+                onClick={() => setNotes("")}
                 className="mt-4 flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 font-semibold text-white hover:bg-indigo-700"
               >
                 <Sparkles size={18} />
                 Clear Notes
               </button>
-
             </div>
 
-            <NotesViewer
-              topic={selectedTopic}
-              notes={notes}
-            />
-
+            <NotesViewer topic={selectedTopic} notes={notes} />
           </div>
         );
 
       case "quiz":
         return (
           <div className="space-y-6">
-
             <div>
               <h1 className="text-3xl font-bold text-slate-900">
                 Practice Quiz
               </h1>
-
               <p className="mt-2 text-slate-500">
                 Test your knowledge with practice questions.
               </p>
             </div>
-
             <Quiz />
-
           </div>
         );
 
       case "progress":
         return (
           <div className="rounded-2xl border border-slate-200 bg-white p-8">
-
             <h1 className="text-3xl font-bold text-slate-900">
               My Progress
             </h1>
-
             <p className="mt-3 leading-7 text-slate-600">
-              Your learning progress will appear here once we connect
-              the dashboard to the backend progress API.
+              Your learning progress will appear here once the backend
+              progress API is connected.
             </p>
-
           </div>
         );
 
       case "settings":
         return (
           <div className="rounded-2xl border border-slate-200 bg-white p-8">
-
             <h1 className="text-3xl font-bold text-slate-900">
               Settings
             </h1>
-
             <p className="mt-3 leading-7 text-slate-600">
               Profile, preferences, and study reminder settings
               will be implemented here.
             </p>
-
           </div>
         );
 
@@ -202,14 +163,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-
-      <Navbar
-        onMenuClick={() => setSidebarOpen(true)}
-      />
+      <Navbar onMenuClick={() => setSidebarOpen(true)} />
 
       <div className="mx-auto flex max-w-[1600px]">
-
-        {/* Mobile overlay */}
         {sidebarOpen && (
           <button
             aria-label="Close navigation"
@@ -218,19 +174,13 @@ export default function App() {
           />
         )}
 
-        {/* Sidebar */}
         <aside
           className={`fixed bottom-0 left-0 top-16 z-50 flex w-64 flex-col border-r border-slate-200 bg-white transition-transform duration-200 lg:sticky lg:top-16 lg:z-0 lg:h-[calc(100vh-4rem)] lg:translate-x-0 ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
-
           <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 lg:hidden">
-
-            <span className="font-bold text-slate-900">
-              Menu
-            </span>
-
+            <span className="font-bold text-slate-900">Menu</span>
             <button
               onClick={() => setSidebarOpen(false)}
               aria-label="Close menu"
@@ -238,11 +188,9 @@ export default function App() {
             >
               <X size={20} />
             </button>
-
           </div>
 
           <nav className="flex-1 space-y-1 p-4">
-
             <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
               Learning Space
             </p>
@@ -266,36 +214,33 @@ export default function App() {
                 </button>
               );
             })}
-
           </nav>
 
           <div className="m-4 rounded-2xl bg-indigo-50 p-4">
-
             <Sparkles size={22} className="text-indigo-600" />
-
-            <h3 className="mt-3 font-bold text-slate-900">
-              Learn smarter
-            </h3>
-
+            <h3 className="mt-3 font-bold text-slate-900">Learn smarter</h3>
             <p className="mt-2 text-xs leading-5 text-slate-600">
               Your personalized learning experience starts here.
             </p>
-
           </div>
-
         </aside>
 
-        {/* Main Content */}
         <main className="min-w-0 flex-1 p-4 md:p-8">
-
-          <div className="mx-auto max-w-6xl">
-            {renderPage()}
-          </div>
-
+          <div className="mx-auto max-w-6xl">{renderPage()}</div>
         </main>
-
       </div>
-
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/dashboard" element={<LearnAbleDashboard />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
