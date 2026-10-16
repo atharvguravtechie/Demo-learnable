@@ -1,3 +1,4 @@
+
 import os
 from dotenv import load_dotenv
 from google import genai
@@ -10,9 +11,11 @@ MODEL_NAME = "gemini-3.5-flash-lite"
 def generate_notes(topic: str, sources: list[dict]) -> dict:
     """Generate study notes for a topic using Gemini."""
 
+    # Validate topic
     if not isinstance(topic, str) or not topic.strip():
         raise ValueError("Topic must not be empty.")
 
+    # Validate sources
     if not isinstance(sources, list):
         raise TypeError("Sources must be a list.")
 
@@ -22,6 +25,7 @@ def generate_notes(topic: str, sources: list[dict]) -> dict:
 
     clean_topic = topic.strip()
 
+    # Prepare source information
     source_text = "\n".join(
         f"Title: {source.get('title', '')}\n"
         f"URL: {source.get('url', '')}\n"
@@ -31,6 +35,7 @@ def generate_notes(topic: str, sources: list[dict]) -> dict:
 
     api_key = os.getenv("GEMINI_API_KEY")
 
+    # Generate notes using Gemini
     if api_key:
         try:
             client = genai.Client(api_key=api_key)
@@ -40,7 +45,7 @@ Create detailed, student-friendly study notes about:
 {clean_topic}
 
 Use supplied sources as factual evidence when available.
-Never invent sources or claim that research was verified when it was not.
+Do not invent sources or claim unverified research.
 
 Include:
 1. Topic overview
@@ -50,8 +55,8 @@ Include:
 5. Summary
 6. Five practice questions with answers
 
-If sources are missing, clearly label the notes as general
-educational content rather than research-verified content.
+If sources are missing, label the notes as general
+educational content, not research-verified content.
 
 Source material:
 {source_text if source_text else "No external sources supplied."}
@@ -73,9 +78,15 @@ Use clear headings and readable plain text.
                     "sources": sources,
                 }
 
-        except Exception:
-            pass
+            print("Gemini returned an empty response.")
 
+        except Exception as exc:
+            print(f"Gemini notes generation failed: {exc}")
+
+    else:
+        print("GEMINI_API_KEY is missing. Using demo fallback.")
+
+    # Fallback if Gemini is unavailable
     demo_content = f"""DEMO FALLBACK — NOT AI-GENERATED
 
 Topic: {clean_topic}
