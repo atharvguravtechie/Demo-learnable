@@ -7,7 +7,7 @@ BookOpen,
 FileText,
 Target,
 ChartNoAxesColumnIncreasing,
-Settings,
+Settings as SettingsIcon,
 X,
 Sparkles,
 Bot,
@@ -21,6 +21,7 @@ import Quiz from "./components/Quiz";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Resister.jsx";
 import RobotTeacher from "./pages/RobotTeacher.jsx";
+import Settings from "./pages/Setting.jsx";
 
 const navigation = [
 { id: "dashboard", label: "Dashboard", icon: House },
@@ -33,7 +34,7 @@ id: "progress",
 label: "My Progress",
 icon: ChartNoAxesColumnIncreasing,
 },
-{ id: "settings", label: "Settings", icon: Settings },
+{ id: "settings", label: "Settings", icon: SettingsIcon },
 ];
 
 function LearnAbleDashboard() {
@@ -160,18 +161,7 @@ onStartQuiz={() => navigate("quiz")}
     );
 
   case "settings":
-    return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-8">
-        <h1 className="text-3xl font-bold text-slate-900">
-          Settings
-        </h1>
-
-        <p className="mt-3 leading-7 text-slate-600">
-          Profile, preferences, and study reminder settings
-          will be implemented here.
-        </p>
-      </div>
-    );
+    return <Settings />;
 
   default:
     return null;
@@ -198,9 +188,7 @@ return (
       }`}
     >
       <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 lg:hidden">
-        <span className="font-bold text-slate-900">
-          Menu
-        </span>
+        <span className="font-bold text-slate-900">Menu</span>
 
         <button
           onClick={() => setSidebarOpen(false)}
@@ -251,9 +239,7 @@ return (
     </aside>
 
     <main className="min-w-0 flex-1 p-4 md:p-8">
-      <div className="mx-auto max-w-6xl">
-        {renderPage()}
-      </div>
+      <div className="mx-auto max-w-6xl">{renderPage()}</div>
     </main>
   </div>
 </div>
@@ -267,10 +253,7 @@ return (
 <Routes>
 <Route path="/" element={<Login />} />
 <Route path="/register" element={<Register />} />
-<Route
-path="/dashboard"
-element={<LearnAbleDashboard />}
-/>
+<Route path="/dashboard" element={<LearnAbleDashboard />} />
 </Routes>
 </BrowserRouter>
 );
