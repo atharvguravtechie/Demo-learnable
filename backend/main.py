@@ -2,7 +2,7 @@
 import os
 import uuid
 from contextlib import asynccontextmanager
-
+import traceback
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -130,6 +130,7 @@ def generate_notes_endpoint(request: NotesGenerateRequest):
             status_code=502,
             detail="Could not generate study notes.",
         ) from exc
+    
 
 
 @app.post(
@@ -190,6 +191,7 @@ def generate_quiz_endpoint(request: QuizGenerateRequest):
         }
 
     except Exception as exc:
+        traceback.print_exc()
         raise HTTPException(
             status_code=502,
             detail=(
@@ -197,7 +199,7 @@ def generate_quiz_endpoint(request: QuizGenerateRequest):
                 "Check the AI API configuration and try again."
             ),
         ) from exc
-
+        
 
 @app.post(
     "/api/quiz/submit",
