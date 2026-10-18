@@ -1,6 +1,13 @@
-import { useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-
+import { useEffect, useState } from "react";
+import {
+  generateNotes,
+  downloadNotesPdf,
+} from "./services/api";
+import {
+  getProgress,
+  updateTopicProgress,
+} from "./services/api";
 import {
 House,
 BookOpen,
@@ -41,27 +48,120 @@ const [page, setPage] = useState("dashboard");
 const [sidebarOpen, setSidebarOpen] = useState(false);
 const [selectedTopic, setSelectedTopic] = useState("");
 const [notes, setNotes] = useState("");
+const [noteSources, setNoteSources] = useState([]);
+const [notesLoading, setNotesLoading] = useState(false);
+const [notesError, setNotesError] = useState("");
+const [selectedTopicId, setSelectedTopicId] = useState("");
+const [progressData, setProgressData] = useState(null);
+const [progressLoading, setProgressLoading] = useState(false);
+const [progressError, setProgressError] = useState("");
 
 function navigate(destination) {
 setPage(destination);
 setSidebarOpen(false);
 }
 
+
 function handleSelectTopic(topic) {
-setSelectedTopic(topic.title);
-setNotes("");
-setPage("notes");
-setSidebarOpen(false);
+  setSelectedTopic(topic.title);
+  setSelectedTopicId(String(topic.id));
+  setNotes("");
+  setNoteSources([]);
+  setNotesError("");
+  setPage("notes");
+  setSidebarOpen(false);
 }
 
-function handleGenerateNotes() {
-setSelectedTopic(
-(current) => current || "Artificial Intelligence"
-);
-setNotes("");
-setPage("notes");
-setSidebarOpen(false);
+async function handleGenerateNotes() {
+  const topicTitle = selectedTopic.trim();
+
+  if (!topicTitle) {
+    setNotesError("Please enter a topic first.");
+    return;
+  }
+
+  const topicId =
+    selectedTopicId ||
+    topicTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+  setNotesLoading(true);
+  setNotesError("");
+  setNotes("");
+
+  try {
+    const result = await generateNotes({
+      topic_id: topicId,
+      topic_title: topicTitle,
+    });
+
+    setSelectedTopicId(result.topic_id);
+    setNotes(result.content);
+    setNoteSources(result.sources || []);
+  } catch (error) {
+    setNotesError(
+      error.message || "Unable to generate notes. Please try again."
+    );
+  } finally {
+    setNotesLoading(false);
+  }
 }
+
+async function handleDownloadNotesPdf() {
+  if (!selectedTopicId || !notes) return;
+
+  try {
+    const blob = await downloadNotesPdf(selectedTopicId);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `${selectedTopicId}-notes.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (error) {
+    setNotesError(
+      error.message || "Unable to download the PDF. Please try again."
+    );
+  }
+}
+
+async function loadProgress() {
+  setProgressLoading(true);
+  setProgressError("");
+
+  try {
+    const data = await getProgress();
+    setProgressData(data);
+  } catch (error) {
+    setProgressError(
+      error.message || "Unable to load learning progress."
+    );
+  } finally {
+    setProgressLoading(false);
+  }
+}
+
+useEffect(() => {
+  if (page === "progress") {
+    loadProgress();
+  }
+}, [page]);
+
+async function handleProgressUpdate(topicId, status) {
+  setProgressError("");
+
+  try {
+    await updateTopicProgress(topicId, status);
+    await loadProgress();
+  } catch (error) {
+    setProgressError(
+      error.message || "Unable to update topic progress."
+    );
+  }
+}
+
 
 function renderPage() {
 switch (page) {
@@ -77,53 +177,79 @@ onStartQuiz={() => navigate("quiz")}
   case "syllabus":
     return <Syllabus onSelectTopic={handleSelectTopic} />;
 
-  case "notes":
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">
-            AI Notes Generator
-          </h1>
+  
+case "notes":
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-slate-900">
+          AI Notes Generator
+        </h1>
 
-          <p className="mt-2 text-slate-500">
-            Prepare clear and organized notes for your studies.
-          </p>
-        </div>
+        <p className="mt-2 text-slate-500">
+          Generate organized study notes for any topic in your syllabus.
+        </p>
+      </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <label
-            htmlFor="topic"
-            className="mb-2 block text-sm font-semibold text-slate-700"
-          >
-            Enter your topic
-          </label>
+      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+        <label
+          htmlFor="topic"
+          className="mb-2 block text-sm font-semibold text-slate-700"
+        >
+          Enter your topic
+        </label>
 
-          <input
-            id="topic"
-            value={selectedTopic}
-            onChange={(event) =>
-              setSelectedTopic(event.target.value)
-            }
-            placeholder="Example: Breadth-First Search"
-            className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-          />
+        <input
+          id="topic"
+          value={selectedTopic}
+          onChange={(event) => {
+            setSelectedTopic(event.target.value);
+            setSelectedTopicId("");
+          }}
+          placeholder="Example: Breadth-First Search"
+          className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+        />
 
-          <p className="mt-2 text-xs text-slate-500">
-            Connect the AI backend to generate actual notes.
-          </p>
-
+        <div className="mt-4 flex flex-wrap gap-3">
           <button
-            onClick={() => setNotes("")}
-            className="mt-4 flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 font-semibold text-white hover:bg-indigo-700"
+            onClick={handleGenerateNotes}
+            disabled={notesLoading}
+            className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Sparkles size={18} />
+            {notesLoading ? "Generating..." : "Generate AI Notes"}
+          </button>
+
+          <button
+            onClick={() => {
+              setNotes("");
+              setNoteSources([]);
+              setNotesError("");
+            }}
+            disabled={notesLoading}
+            className="rounded-xl border border-slate-200 px-5 py-3 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+          >
             Clear Notes
           </button>
         </div>
 
-        <NotesViewer topic={selectedTopic} notes={notes} />
+        {notesError && (
+          <p className="mt-4 text-sm text-red-600" role="alert">
+            {notesError}
+          </p>
+        )}
       </div>
-    );
+
+      <NotesViewer
+        topic={selectedTopic}
+        notes={notes}
+        sources={noteSources}
+        loading={notesLoading}
+        onDownload={handleDownloadNotesPdf}
+      />
+    </div>
+  );
+
 
   case "quiz":
     return (
@@ -138,26 +264,159 @@ onStartQuiz={() => navigate("quiz")}
           </p>
         </div>
 
-        <Quiz />
+       <Quiz
+  topicTitle={selectedTopic || "Artificial Intelligence"}
+  topicId={selectedTopicId}
+/>
       </div>
     );
 
   case "teacher":
     return <RobotTeacher />;
 
-  case "progress":
-    return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-8">
+ 
+case "progress":
+  return (
+    <div className="space-y-6">
+      <div>
         <h1 className="text-3xl font-bold text-slate-900">
           My Progress
         </h1>
-
-        <p className="mt-3 leading-7 text-slate-600">
-          Your learning progress will appear here once the backend
-          progress API is connected.
+        <p className="mt-2 text-slate-500">
+          Track your syllabus coverage and reviewed topics.
         </p>
       </div>
-    );
+
+      {progressError && (
+        <div
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+        >
+          {progressError}
+        </div>
+      )}
+
+      {progressLoading && !progressData ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-500">
+          Loading your progress...
+        </div>
+      ) : progressData ? (
+        <>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5">
+              <p className="text-sm text-slate-500">Total topics</p>
+              <p className="mt-2 text-3xl font-bold text-slate-900">
+                {progressData.total_topics}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-5">
+              <p className="text-sm text-slate-500">Reviewed topics</p>
+              <p className="mt-2 text-3xl font-bold text-emerald-600">
+                {progressData.completed_topics}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-5">
+              <p className="text-sm text-slate-500">Syllabus coverage</p>
+              <p className="mt-2 text-3xl font-bold text-indigo-600">
+                {Math.round(progressData.coverage_percentage)}%
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-6">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-bold text-slate-900">
+                Topic progress
+              </h2>
+              <button
+                onClick={loadProgress}
+                disabled={progressLoading}
+                className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+              >
+                Refresh
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-5">
+              {progressData.topics.length === 0 ? (
+                <p className="text-sm text-slate-500">
+                  No topics yet. Parse your syllabus first to start tracking progress.
+                </p>
+              ) : (
+                progressData.topics.map((topic) => (
+                  <div
+                    key={topic.id}
+                    className="border-b border-slate-100 pb-5 last:border-0 last:pb-0"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h3 className="font-semibold text-slate-800">
+                          {topic.title}
+                        </h3>
+                        <p className="mt-1 text-sm text-slate-500">
+                          Quiz score: {topic.quiz_percentage}%
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={() =>
+                          handleProgressUpdate(
+                            topic.id,
+                            topic.status === "reviewed"
+                              ? "not_started"
+                              : "reviewed"
+                          )
+                        }
+                        disabled={progressLoading}
+                        className={`rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-50 ${
+                          topic.status === "reviewed"
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-indigo-50 text-indigo-700"
+                        }`}
+                      >
+                        {topic.status === "reviewed"
+                          ? "✓ Reviewed"
+                          : "Mark reviewed"}
+                      </button>
+                    </div>
+
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        className="h-full rounded-full bg-indigo-600 transition-all"
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            Math.max(0, topic.quiz_percentage)
+                          )}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      ) : (
+        !progressLoading && (
+          <div className="rounded-2xl border border-slate-200 bg-white p-6">
+            <p className="text-slate-600">
+              No progress data is available yet.
+            </p>
+            <button
+              onClick={loadProgress}
+              className="mt-4 rounded-xl bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700"
+            >
+              Try again
+            </button>
+          </div>
+        )
+      )}
+    </div>
+  );
+
 
   case "settings":
     return (
