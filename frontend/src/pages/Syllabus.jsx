@@ -328,6 +328,44 @@ Note: These are sample notes, not verified AI-generated subject content. Connect
               {completedCount} / {topics.length} topics completed
             </p>
           </div>
+          
+<form
+  onSubmit={handleParseSyllabus}
+  className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+>
+  <h2 className="text-lg font-bold text-slate-900">
+    Generate Topics from Your Syllabus
+  </h2>
+
+  <p className="mt-2 text-sm text-slate-500">
+    Paste your subject syllabus below to extract learning topics.
+  </p>
+
+  <textarea
+    value={syllabusText}
+    onChange={(event) => setSyllabusText(event.target.value)}
+    placeholder={"Unit 1: Introduction to AI\nUnit 2: Search Algorithms\nUnit 3: Knowledge Representation"}
+    rows={6}
+    className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+  />
+
+  <button
+    type="submit"
+    disabled={parsingSyllabus}
+    className="mt-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+  >
+    {parsingSyllabus && (
+      <Loader2 size={18} className="animate-spin" />
+    )}
+    {parsingSyllabus ? "Extracting Topics..." : "Extract Topics"}
+  </button>
+
+  {message && (
+    <p className="mt-3 text-sm text-slate-600" role="status">
+      {message}
+    </p>
+  )}
+</form>
 
           <div className="rounded-xl bg-emerald-50 p-3">
             <CheckCircle2 className="text-emerald-600" size={26} />

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import {
   CheckCircle2,
@@ -11,6 +12,7 @@ import {
   Brain,
   ChevronRight,
 } from "lucide-react";
+import { generateQuiz, submitQuiz } from "../services/api";
 
 const syllabus = {
   "Artificial Intelligence": [
@@ -181,7 +183,10 @@ export default function Quiz() {
         ? previous.filter((item) => item !== topic)
         : [...previous, topic]
     );
+  } finally {
+    setLoading(false);
   }
+}
 
   function toggleAllTopics() {
     setSelectedTopics((previous) =>

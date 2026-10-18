@@ -445,6 +445,11 @@ export default function NotesViewer({ topic = "", notes = "" }) {
               margin-bottom: 10px;
             }
 
+<<<<<<< temp
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+=======
             h3 {
               color: #475569;
               margin-top: 28px;
@@ -453,6 +458,7 @@ export default function NotesViewer({ topic = "", notes = "" }) {
             li {
               margin-bottom: 8px;
             }
+>>>>>>> main
 
             .topic {
               margin-bottom: 26px;
