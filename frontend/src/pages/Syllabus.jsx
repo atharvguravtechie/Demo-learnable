@@ -222,7 +222,7 @@ Note: These are sample notes, not verified AI-generated subject content. Connect
           Back to My Syllabus
         </button>
 
-        <div className="rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 p-6 text-white sm:p-8">
+        <div className="rounded-2xl bg-linear-to-r from-indigo-600 to-violet-600 p-6 text-white sm:p-8">
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-white/15 p-3">
               <BookOpen size={28} />
@@ -297,7 +297,7 @@ Note: These are sample notes, not verified AI-generated subject content. Connect
       </div>
 
       {/* Banner */}
-      <div className="rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 p-6 text-white">
+      <div className="rounded-2xl bg-linear-to-r from-indigo-600 to-violet-600 p-6 text-white">
         <div className="flex items-start gap-4">
           <div className="rounded-xl bg-white/15 p-3">
             <GraduationCap size={28} />
