@@ -54,6 +54,7 @@ def get_progress():
         progress_topics.append({
             "id": topic["id"],
             "title": topic["title"],
+            "unit": topic.get("unit", ""),
             "status": topic["status"],
             "quiz_percentage": quiz_percentage
         })

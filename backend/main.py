@@ -4,6 +4,7 @@ import uuid
 from contextlib import asynccontextmanager
 import traceback
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
@@ -11,6 +12,8 @@ from backend.database import (
     init_db,
     add_topic,
     record_quiz_attempt,
+    get_topics,
+    delete_topic,
 )
 from backend.progress import get_progress, update_progress
 from backend.schemas import (
@@ -31,6 +34,12 @@ from ai_engine.research import research_topic
 from ai_engine.notes_generator import generate_notes
 from ai_engine.quiz_generator import generate_quiz
 from ai_engine.pdf_generator import generate_pdf
+
+
+class TopicCreateRequest(BaseModel):
+    id: str
+    title: str
+    unit: str = ""
 
 
 # Temporary storage for the current running server.
@@ -67,6 +76,38 @@ app.add_middleware(
 @app.get("/api/health")
 def health_check():
     return {"status": "healthy", "project": "LearnAble"}
+
+
+@app.get("/api/syllabus/topics")
+def read_syllabus_topics():
+    """Return syllabus topics persisted in SQLite."""
+    return {"topics": get_topics()}
+
+
+@app.post("/api/syllabus/topics")
+def create_syllabus_topic(request: TopicCreateRequest):
+    """Save a user-created topic to SQLite."""
+    topic_id = request.id.strip()
+    title = request.title.strip()
+    if not topic_id or not title:
+        raise HTTPException(status_code=400, detail="Topic ID and title are required.")
+    try:
+        add_topic(topic_id, title, request.unit.strip())
+        return {"id": topic_id, "title": title, "unit": request.unit.strip(), "status": "not_started"}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Could not save topic.") from exc
+
+
+@app.delete("/api/syllabus/topics/{topic_id}")
+def remove_syllabus_topic(topic_id: str):
+    """Delete a topic and its quiz attempts from SQLite."""
+    try:
+        delete_topic(topic_id)
+        return {"deleted": True, "id": topic_id}
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Could not delete topic.") from exc
 
 
 @app.post(

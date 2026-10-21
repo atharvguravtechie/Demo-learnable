@@ -76,6 +76,19 @@ def get_topics():
     return [dict(row) for row in rows]
 
 
+
+def delete_topic(topic_id):
+    """Delete a topic and its associated quiz attempts."""
+    connection = get_connection()
+    connection.execute("DELETE FROM quiz_attempts WHERE topic_id = ?", (topic_id,))
+    cursor = connection.execute("DELETE FROM topics WHERE id = ?", (topic_id,))
+    connection.commit()
+    deleted = cursor.rowcount
+    connection.close()
+
+    if deleted == 0:
+        raise ValueError(f"Topic not found: {topic_id}")
+
 def update_topic_status(topic_id, status):
     """Change a topic's status."""
 
