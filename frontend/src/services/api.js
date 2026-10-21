@@ -30,6 +30,26 @@ export function getHealth() {
   return request("/health");
 }
 
+// Load topics saved in SQLite
+export function getSyllabusTopics() {
+  return request("/syllabus/topics");
+}
+
+// Save a manually added topic in SQLite
+export function createSyllabusTopic(payload) {
+  return request("/syllabus/topics", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+// Delete a topic from SQLite
+export function deleteSyllabusTopic(topicId) {
+  return request(`/syllabus/topics/${encodeURIComponent(topicId)}`, {
+    method: "DELETE",
+  });
+}
+
 // Parse a pasted syllabus into topics
 export function parseSyllabus(syllabusText) {
   return request("/syllabus/parse", {

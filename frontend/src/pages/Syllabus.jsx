@@ -12,54 +12,18 @@ import {
   Loader2,
   GraduationCap,
 } from "lucide-react";
-import { parseSyllabus } from "../services/api";
+import {
+  parseSyllabus,
+  getSyllabusTopics,
+  createSyllabusTopic,
+  deleteSyllabusTopic,
+  updateTopicProgress,
+} from "../services/api";
 
-const initialTopics = [
-  {
-    id: "intro-ai",
-    title: "Introduction to Artificial Intelligence",
-    chapter: "Chapter 1",
-    duration: "15 min",
-    completed: false,
-    notes: "",
-  },
-  {
-    id: "bfs",
-    title: "Breadth-First Search",
-    chapter: "Chapter 2",
-    duration: "20 min",
-    completed: false,
-    notes: "",
-  },
-  {
-    id: "dfs",
-    title: "Depth-First Search",
-    chapter: "Chapter 2",
-    duration: "20 min",
-    completed: false,
-    notes: "",
-  },
-  {
-    id: "heuristic-search",
-    title: "Heuristic Search",
-    chapter: "Chapter 3",
-    duration: "25 min",
-    completed: false,
-    notes: "",
-  },
-];
-
-const STORAGE_KEY = "learnable-syllabus-topics";
 
 export default function Syllabus({ onSelectTopic }) {
-  const [topics, setTopics] = useState(() => {
-    try {
-      const savedTopics = localStorage.getItem(STORAGE_KEY);
-      return savedTopics ? JSON.parse(savedTopics) : initialTopics;
-    } catch {
-      return initialTopics;
-    }
-  });
+  const [topics, setTopics] = useState([]);
+  const [loadingTopics, setLoadingTopics] = useState(true);
 
   const [search, setSearch] = useState("");
   const [newTopic, setNewTopic] = useState("");
@@ -71,12 +35,33 @@ export default function Syllabus({ onSelectTopic }) {
   const [parsingSyllabus, setParsingSyllabus] = useState(false);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(topics));
-    } catch {
-      setMessage("Unable to save topics in this browser.");
+    let cancelled = false;
+
+    async function loadTopics() {
+      try {
+        const result = await getSyllabusTopics();
+        if (!cancelled) {
+          setTopics((result?.topics || []).map((topic) => ({
+            id: topic.id,
+            title: topic.title,
+            chapter: topic.unit || "Syllabus Topics",
+            duration: "15 min",
+            completed: topic.status === "reviewed",
+            notes: "",
+          })));
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setMessage(error?.message || "Could not load topics from the backend.");
+        }
+      } finally {
+        if (!cancelled) setLoadingTopics(false);
+      }
     }
-  }, [topics]);
+
+    loadTopics();
+    return () => { cancelled = true; };
+  }, []);
 
   const filteredTopics = topics.filter((topic) =>
     topic.title.toLowerCase().includes(search.toLowerCase())
@@ -111,27 +96,20 @@ export default function Syllabus({ onSelectTopic }) {
         return;
       }
 
-      setTopics((previous) => {
-        // Keep existing completion/notes when a parsed topic has the same title.
-        const existingByTitle = new Map(
-          previous.map((item) => [item.title.trim().toLowerCase(), item])
-        );
-
-        return parsedTopics.map((item) => {
-          const existing = existingByTitle.get(item.title.trim().toLowerCase());
-          return existing
-            ? {
-                ...item,
-                id: existing.id,
-                completed: existing.completed,
-                notes: existing.notes || "",
-              }
-            : item;
-        });
-      });
+      // The parser saves topics in SQLite. Reload from the database so IDs
+      // and completion status in the UI match the persisted records.
+      const saved = await getSyllabusTopics();
+      setTopics((saved?.topics || []).map((topic) => ({
+        id: topic.id,
+        title: topic.title,
+        chapter: topic.unit || "Syllabus Topics",
+        duration: "15 min",
+        completed: topic.status === "reviewed",
+        notes: "",
+      })));
 
       setSearch("");
-      setMessage(`Successfully parsed ${parsedTopics.length} topics from your syllabus.`);
+      setMessage(`Successfully parsed and saved ${parsedTopics.length} topics.`);
     } catch (error) {
       console.error("Syllabus parsing failed:", error);
       setMessage(
@@ -142,7 +120,7 @@ export default function Syllabus({ onSelectTopic }) {
     }
   }
 
-  function addTopic(event) {
+  async function addTopic(event) {
     event.preventDefault();
     const title = newTopic.trim();
 
@@ -169,29 +147,50 @@ export default function Syllabus({ onSelectTopic }) {
       notes: "",
     };
 
-    setTopics((previous) => [...previous, topic]);
-    setNewTopic("");
-    setMessage("Topic added successfully!");
+    try {
+      await createSyllabusTopic({
+        id: topic.id,
+        title: topic.title,
+        unit: topic.chapter,
+      });
+      setTopics((previous) => [...previous, topic]);
+      setNewTopic("");
+      setMessage("Topic saved successfully!");
+    } catch (error) {
+      setMessage(error?.message || "Could not save this topic to the database.");
+    }
   }
 
-  function deleteTopic(id) {
-    setTopics((previous) => previous.filter((topic) => topic.id !== id));
-    if (activeTopic?.id === id) setActiveTopic(null);
-    setMessage("Topic deleted.");
+  async function deleteTopic(id) {
+    try {
+      await deleteSyllabusTopic(id);
+      setTopics((previous) => previous.filter((topic) => topic.id !== id));
+      if (activeTopic?.id === id) setActiveTopic(null);
+      setMessage("Topic deleted.");
+    } catch (error) {
+      setMessage(error?.message || "Could not delete this topic from the database.");
+    }
   }
 
-  function toggleCompleted(id) {
-    setTopics((previous) =>
-      previous.map((topic) =>
-        topic.id === id ? { ...topic, completed: !topic.completed } : topic
-      )
-    );
+  async function toggleCompleted(id) {
+    const currentTopic = topics.find((topic) => topic.id === id) || activeTopic;
+    if (!currentTopic) return;
 
-    setActiveTopic((previous) =>
-      previous?.id === id
-        ? { ...previous, completed: !previous.completed }
-        : previous
-    );
+    const nextCompleted = !currentTopic.completed;
+    try {
+      await updateTopicProgress(id, nextCompleted ? "reviewed" : "not_started");
+      setTopics((previous) =>
+        previous.map((topic) =>
+          topic.id === id ? { ...topic, completed: nextCompleted } : topic
+        )
+      );
+      setActiveTopic((previous) =>
+        previous?.id === id ? { ...previous, completed: nextCompleted } : previous
+      );
+      setMessage(nextCompleted ? "Progress saved." : "Topic marked incomplete.");
+    } catch (error) {
+      setMessage(error?.message || "Could not save topic progress.");
+    }
   }
 
   async function generateNotes(topic) {
@@ -460,6 +459,9 @@ Note: These are sample notes, not verified AI-generated subject content.`;
           My Topics ({filteredTopics.length})
         </h2>
         <div className="space-y-4">
+          {loadingTopics && (
+            <p className="text-sm text-slate-500">Loading topics from your database...</p>
+          )}
           {filteredTopics.map((topic) => (
             <div
               key={topic.id}
